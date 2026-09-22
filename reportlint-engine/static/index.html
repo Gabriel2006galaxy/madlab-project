@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReportLint — format compliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F3EC;
+    --paper-raised:#FBFAF6;
+    --ink:#24211D;
+    --ink-soft:#5B564C;
+    --rule:#D8D2C2;
+    --red:#9C2B2B;
+    --red-soft:#F1E1DE;
+    --amber:#9A6B0B;
+    --amber-soft:#F3E7CB;
+    --green:#3D6B4A;
+    --green-soft:#E2ECE3;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:15px;
+    line-height:1.55;
+  }
+  h1,h2,h3{font-family:'Source Serif 4',Georgia,serif; font-weight:600; margin:0 0 .4em 0}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px 80px}
+  header.top{
+    padding:40px 24px 28px;
+    border-bottom:1px solid var(--rule);
+    margin-bottom:32px;
+  }
+  header.top .wrap{padding:0}
+  header.top h1{font-size:28px; letter-spacing:-0.01em}
+  header.top p{margin:6px 0 0; color:var(--ink-soft); font-size:14px}
+
+  nav.tabs{display:flex; gap:4px; margin:28px 0}
+  nav.tabs button{
+    font-family:inherit; font-size:14px; font-weight:500;
+    background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--ink-soft); padding:8px 4px; margin-right:20px; cursor:pointer;
+  }
+  nav.tabs button.active{color:var(--ink); border-bottom-color:var(--red)}
+
+  .panel{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    padding:22px 24px;
+    margin-bottom:20px;
+  }
+  .panel h2{font-size:17px}
+  .panel .hint{color:var(--ink-soft); font-size:13px; margin:2px 0 16px}
+
+  label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin:14px 0 5px; text-transform:uppercase; letter-spacing:.04em}
+  label:first-child{margin-top:0}
+  input[type=text], input[type=file], select{
+    width:100%; font-family:inherit; font-size:14px; padding:9px 10px;
+    border:1px solid var(--rule); border-radius:2px; background:#fff; color:var(--ink);
+  }
+  button.primary{
+    font-family:inherit; font-size:14px; font-weight:600;
+    background:var(--ink); color:var(--paper-raised); border:none;
+    padding:10px 18px; border-radius:2px; cursor:pointer; margin-top:16px;
+  }
+  button.primary:hover{background:#000}
+  button.primary:disabled{opacity:.5; cursor:default}
+  button.ghost{
+    font-family:inherit; font-size:13px; font-weight:600;
+    background:none; border:1px solid var(--rule); color:var(--ink);
+    padding:7px 12px; border-radius:2px; cursor:pointer;
+  }
+  button.link{background:none;border:none;color:var(--ink-soft);font-family:inherit;font-size:13px;cursor:pointer;padding:0}
+
+  table.tlist{width:100%; border-collapse:collapse; margin-top:6px}
+  table.tlist td, table.tlist th{padding:10px 6px; border-bottom:1px solid var(--rule); text-align:left; font-size:13.5px}
+  table.tlist th{color:var(--ink-soft); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em}
+  table.tlist tr.row{cursor:pointer}
+  table.tlist tr.row:hover td{background:#F0EEE4}
+  .status-pill{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em;
+    padding:2px 8px; border-radius:10px;
+  }
+  .status-DRAFT{background:var(--amber-soft); color:var(--amber)}
+  .status-PUBLISHED{background:var(--green-soft); color:var(--green)}
+
+  .rule-row{
+    display:flex; align-items:flex-start; gap:12px;
+    padding:12px 0; border-bottom:1px solid var(--rule);
+  }
+  .rule-row:last-child{border-bottom:none}
+  .rule-main{flex:1}
+  .rule-id{font-weight:600; font-size:13.5px}
+  .rule-note{color:var(--ink-soft); font-size:12.5px; margin-top:2px}
+  .rule-value{font-family:'Source Serif 4',serif; font-size:14px; margin-top:4px}
+  .sev-select{font-size:12px; padding:4px 6px; width:auto}
+
+  .score-block{display:flex; align-items:baseline; gap:18px; margin-bottom:6px}
+  .score-num{font-family:'Source Serif 4',serif; font-size:56px; font-weight:700; line-height:1}
+  .score-label{color:var(--ink-soft); font-size:14px}
+
+  .cat-row{display:flex; align-items:center; gap:10px; font-size:13px; padding:5px 0}
+  .cat-name{width:170px; color:var(--ink-soft)}
+  .cat-bar-track{flex:1; height:7px; background:var(--rule); border-radius:4px; overflow:hidden}
+  .cat-bar-fill{height:100%; background:var(--ink)}
+  .cat-score{width:42px; text-align:right; font-variant-numeric:tabular-nums}
+
+  .violation{
+    border-left:3px solid var(--rule);
+    padding:10px 0 10px 14px; margin:10px 0;
+  }
+  .violation.ERROR{border-left-color:var(--red)}
+  .violation.WARNING{border-left-color:var(--amber)}
+  .v-head{display:flex; gap:8px; align-items:baseline; font-size:13.5px; font-weight:600}
+  .v-badge{font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase}
+  .v-badge.ERROR{color:var(--red)}
+  .v-badge.WARNING{color:var(--amber)}
+  .v-msg{margin-top:3px; font-size:13.5px}
+  .v-meta{color:var(--ink-soft); font-size:12.5px; margin-top:3px}
+  .v-preview{font-family:'Source Serif 4',serif; font-style:italic; color:var(--ink-soft); font-size:13px; margin-top:4px}
+
+  .empty{color:var(--ink-soft); font-size:13.5px; padding:14px 0}
+  .error-banner{background:var(--red-soft); color:var(--red); padding:10px 14px; border-radius:2px; font-size:13.5px; margin-bottom:16px}
+  .muted{color:var(--ink-soft)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>ReportLint</h1>
+    <p>Extract a format from a teacher's template, review the rules, then check a student report against it.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs">
+    <button data-tab="templates" class="active">Templates</button>
+    <button data-tab="check">Check report</button>
+  </nav>
+
+  <div id="banner"></div>
+
+  <!-- TEMPLATES TAB -->
+  <section id="tab-templates">
+    <div class="panel" id="uploadPanel">
+      <h2>Upload a format document</h2>
+      <p class="hint">The system proposes formatting and structure rules from this file. Nothing is required from students until you review and publish.</p>
+      <label for="tplFile">Format .docx</label>
+      <input type="file" id="tplFile" accept=".docx">
+      <label for="tplName">Template name</label>
+      <input type="text" id="tplName" placeholder="e.g. Mini Project 1A">
+      <button class="primary" id="uploadBtn">Upload &amp; analyze</button>
+    </div>
+
+    <div class="panel" id="listPanel">
+      <h2>Saved templates</h2>
+      <table class="tlist" id="tplTable">
+        <thead><tr><th>Name</th><th>Status</th><th>Rules</th><th>Created</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="tplEmpty" style="display:none">No templates yet — upload a format document above.</div>
+    </div>
+
+    <div class="panel" id="reviewPanel" style="display:none">
+      <button class="link" id="backToList">&larr; Back to templates</button>
+      <h2 id="reviewTitle" style="margin-top:10px"></h2>
+      <p class="hint" id="reviewHint"></p>
+      <div id="ruleGroups"></div>
+      <div style="margin-top:10px; display:flex; gap:10px">
+        <button class="primary" id="saveRulesBtn">Save changes</button>
+        <button class="ghost" id="publishBtn">Publish template</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECK REPORT TAB -->
+  <section id="tab-check" style="display:none">
+    <div class="panel">
+      <h2>Check a report</h2>
+      <label for="checkTpl">Template</label>
+      <select id="checkTpl"></select>
+      <label for="reportFile">Student report .docx</label>
+      <input type="file" id="reportFile" accept=".docx">
+      <button class="primary" id="checkBtn">Check report</button>
+    </div>
+
+    <div class="panel" id="resultsPanel" style="display:none">
+      <div class="score-block">
+        <div class="score-num" id="scoreNum">—</div>
+        <div class="score-label" id="scoreLabel"></div>
+      </div>
+      <div id="catScores"></div>
+    </div>
+
+    <div class="panel" id="violationsPanel" style="display:none">
+      <h2>Violations</h2>
+      <div id="violationsList"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const API = "/api";
+let templates = [];
+let currentTemplate = null;
+
+function banner(msg, isError=true){
+  const b = document.getElementById('banner');
+  b.innerHTML = msg ? `<div class="error-banner">${msg}</div>` : '';
+}
+
+function fmtDate(iso){
+  try{ return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+  catch(e){ return iso; }
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-templates').style.display = btn.dataset.tab==='templates' ? '' : 'none';
+    document.getElementById('tab-check').style.display = btn.dataset.tab==='check' ? '' : 'none';
+    if(btn.dataset.tab==='check') populateCheckDropdown();
+  });
+});
+
+// ---------- Templates list ----------
+async function loadTemplates(){
+  const res = await fetch(`${API}/templates`);
+  templates = await res.json();
+  const tbody = document.querySelector('#tplTable tbody');
+  tbody.innerHTML = '';
+  document.getElementById('tplEmpty').style.display = templates.length ? 'none' : '';
+  templates.forEach(t=>{
+    const tr = document.createElement('tr');
+    tr.className = 'row';
+    tr.innerHTML = `<td>${t.name}</td>
+      <td><span class="status-pill status-${t.status}">${t.status}</span></td>
+      <td>${t.rule_count}</td>
+      <td class="muted">${fmtDate(t.created_at)}</td>`;
+    tr.addEventListener('click', ()=>openTemplate(t.id));
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('uploadBtn').addEventListener('click', async ()=>{
+  const fileInput = document.getElementById('tplFile');
+  if(!fileInput.files.length){ banner('Choose a .docx file first.'); return; }
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  const name = document.getElementById('tplName').value.trim();
+  const url = name ? `${API}/templates?name=${encodeURIComponent(name)}` : `${API}/templates`;
+  banner('');
+  document.getElementById('uploadBtn').disabled = true;
+  document.getElementById('uploadBtn').textContent = 'Analyzing…';
+  try{
+    const res = await fetch(url, {method:'POST', body: fd});
+    if(!res.ok){ const err = await res.json(); throw new Error(err.detail || 'Upload failed'); }
+    const t = await res.json();
+    await loadTemplates();
+    openTemplate(t.id);
+    fileInput.value = ''; document.getElementById('tplName').value = '';
+  }catch(e){ banner(e.message); }
+  finally{
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('uploadBtn').textContent = 'Upload & analyze';
+  }
+});
+
+// ---------- Template review ----------
+const SEVERITIES = ['ERROR','WARNING','INFO'];
+
+async function openTemplate(id){
+  const res = await fetch(`${API}/templates/${id}`);
+  currentTemplate = await res.json();
+  document.getElementById('uploadPanel').style.display='none';
+  document.getElementById('listPanel').style.display='none';
+  document.getElementById('reviewPanel').style.display='';
+  document.getElementById('reviewTitle').textContent = currentTemplate.name;
+  document.getElementById('reviewHint').textContent =
+    `Status: ${currentTemplate.status} — from ${currentTemplate.source_filename}. Edit severities or values below, then save.`;
+  renderRuleGroups();
+}
+
+document.getElementById('backToList').addEventListener('click', ()=>{
+  document.getElementById('reviewPanel').style.display='none';
+  document.getElementById('uploadPanel').style.display='';
+  document.getElementById('listPanel').style.display='';
+  currentTemplate = null;
+});
+
+function renderRuleGroups(){
+  const rs = currentTemplate.ruleset;
+  const container = document.getElementById('ruleGroups');
+  container.innerHTML = '';
+
+  const groups = [
+    ['Typography', rs.typography_rules, 'typography_rules'],
+    ['Paragraph formatting', rs.paragraph_rules, 'paragraph_rules'],
+    ['Page layout', rs.page_rules, 'page_rules'],
+  ];
+
+  groups.forEach(([label, rules, key])=>{
+    if(!rules.length) return;
+    const h = document.createElement('h3');
+    h.textContent = label; h.style.fontSize='14px'; h.style.marginTop='18px';
+    container.appendChild(h);
+    rules.forEach((rule, idx)=>{
+      container.appendChild(renderRuleRow(rule, key, idx));
+    });
+  });
+
+  if(rs.structure_rules.length || true){
+    const h = document.createElement('h3');
+    h.textContent = 'Required sections'; h.style.fontSize='14px'; h.style.marginTop='18px';
+    container.appendChild(h);
+    const p = document.createElement('p');
+    p.className = 'hint'; p.style.margin = '0 0 10px';
+    p.textContent = 'Extraction can pick up title-page text as if it were a required section — remove anything that isn\'t a real chapter/section heading.';
+    container.appendChild(p);
+
+    const list = document.createElement('div');
+    list.id = 'structureList';
+    container.appendChild(list);
+    renderStructureList();
+
+    const addRow = document.createElement('div');
+    addRow.style.cssText = 'display:flex; gap:8px; margin-top:10px';
+    addRow.innerHTML = `<input type="text" id="newSectionInput" placeholder="Add required section, e.g. Conclusion">
+      <button class="ghost" id="addSectionBtn" style="flex:0 0 auto">Add</button>`;
+    container.appendChild(addRow);
+    document.getElementById('addSectionBtn').addEventListener('click', ()=>{
+      const input = document.getElementById('newSectionInput');
+      const name = input.value.trim().toLowerCase();
+      if(!name) return;
+      currentTemplate.ruleset.structure_rules.push({
+        canonical_name: name, aliases: [], required: true,
+        order_index: currentTemplate.ruleset.structure_rules.length, parent: null, severity: 'ERROR',
+      });
+      input.value = '';
+      renderStructureList();
+    });
+  }
+}
+
+function renderStructureList(){
+  const list = document.getElementById('structureList');
+  const rules = currentTemplate.ruleset.structure_rules;
+  list.innerHTML = '';
+  if(!rules.length){
+    list.innerHTML = '<div class="empty">No required sections yet — add one below.</div>';
+    return;
+  }
+  rules.forEach((r, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'rule-row';
+    row.innerHTML = `<div class="rule-main">
+        <div class="rule-id">${r.canonical_name}</div>
+        <div class="rule-value">order ${r.order_index}${r.parent ? ' · under '+r.parent : ''}</div>
+      </div>
+      <button class="ghost" data-idx="${idx}">Remove</button>`;
+    row.querySelector('button').addEventListener('click', ()=>{
+      currentTemplate.ruleset.structure_rules.splice(idx, 1);
+      currentTemplate.ruleset.structure_rules.forEach((rr,i)=>rr.order_index=i);
+      renderStructureList();
+    });
+    list.appendChild(row);
+  });
+
+function renderRuleRow(rule, groupKey, idx){
+  const row = document.createElement('div');
+  row.className = 'rule-row';
+  const valueStr = Object.entries(rule.expected_value)
+    .map(([k,v])=>`${k}: ${v===null?'—':v}`).join(', ');
+  const sevOptions = SEVERITIES.map(s=>
+    `<option value="${s}" ${s===rule.severity?'selected':''}>${s}</option>`).join('');
+  row.innerHTML = `
+    <div class="rule-main">
+      <div class="rule-id">${rule.id}</div>
+      <div class="rule-value">${valueStr}</div>
+      <div class="rule-note">${rule.inference_note || ''}</div>
+    </div>
+    <select class="sev-select" data-group="${groupKey}" data-idx="${idx}">${sevOptions}</select>
+  `;
+  row.querySelector('select').addEventListener('change', (e)=>{
+    currentTemplate.ruleset[groupKey][idx].severity = e.target.value;
+    currentTemplate.ruleset[groupKey][idx].teacher_confirmed = true;
+  });
+  return row;
+}
+
+document.getElementById('saveRulesBtn').addEventListener('click', async ()=>{
+  const res = await fetch(`${API}/templates/${currentTemplate.id}/rules`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(currentTemplate.ruleset),
+  });
+  if(res.ok){ currentTemplate = await res.json(); banner(''); renderRuleGroups(); await loadTemplates(); }
+  else { const err = await res.json(); banner(err.detail || 'Save failed'); }
+});
+
+document.getElementById('publishBtn').addEventListener('click', async ()=>{
+  const res = await fetch(`${API}/templates/${currentTemplate.id}/publish`, {method:'POST'});
+  if(res.ok){
+    currentTemplate = await res.json();
+    document.getElementById('reviewHint').textContent =
+      `Status: ${currentTemplate.status} — from ${currentTemplate.source_filename}.`;
+    await loadTemplates();
+  }
+});
+
+// ---------- Check report ----------
+function populateCheckDropdown(){
+  const sel = document.getElementById('checkTpl');
+  sel.innerHTML = templates.map(t=>
+    `<option value="${t.id}">${t.name} (${t.status})</option>`).join('');
+}
+
+document.getElementById('checkBtn').addEventListener('click', async ()=>{
+  const tplId = document.getElementById('checkTpl').value;
+  const fileInput = document.getElementById('reportFile');
+  if(!tplId){ banner('Upload and select a template first.'); return; }
+  if(!fileInput.files.length){ banner('Choose a report .docx file.'); return; }
+  const fd = new FormData();
+  fd.append('report', fileInput.files[0]);
+  banner('');
+  document.getElementById('checkBtn').disabled = true;
+  document.getElementById('checkBtn').textContent = 'Checking…';
+  try{
+    const res = await fetch(`${API}/templates/${tplId}/check`, {method:'POST', body: fd});
+    if(!res.ok){ const err = await res.json(); throw new Error(err.detail || 'Check failed'); }
+    const result = await res.json();
+    renderResults(result);
+  }catch(e){ banner(e.message); }
+  finally{
+    document.getElementById('checkBtn').disabled = false;
+    document.getElementById('checkBtn').textContent = 'Check report';
+  }
+});
+
+function renderResults(result){
+  document.getElementById('resultsPanel').style.display='';
+  document.getElementById('violationsPanel').style.display='';
+  document.getElementById('scoreNum').textContent = Math.round(result.overall_score);
+  document.getElementById('scoreLabel').innerHTML =
+    `<div>Overall compliance</div><div class="muted">${result.total_errors} errors · ${result.total_warnings} warnings · ${result.total_checks_passed} checks passed</div>`;
+
+  const cats = document.getElementById('catScores');
+  cats.innerHTML = '';
+  result.category_scores.forEach(cs=>{
+    if(cs.checks_performed === 0) return;
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    row.innerHTML = `<div class="cat-name">${cs.category.replace(/_/g,' ')}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${cs.score}%"></div></div>
+      <div class="cat-score">${Math.round(cs.score)}</div>`;
+    cats.appendChild(row);
+  });
+
+  const list = document.getElementById('violationsList');
+  list.innerHTML = '';
+  if(!result.violations.length){
+    list.innerHTML = '<div class="empty">No violations found.</div>';
+    return;
+  }
+  const sorted = [...result.violations].sort((a,b)=>{
+    const order = {ERROR:0, WARNING:1, INFO:2};
+    return order[a.severity]-order[b.severity];
+  });
+  sorted.forEach(v=>{
+    const div = document.createElement('div');
+    div.className = `violation ${v.severity}`;
+    const loc = v.location || {};
+    const locBits = [];
+    if(loc.section) locBits.push(loc.section);
+    if(loc.paragraph_index !== null && loc.paragraph_index !== undefined) locBits.push(`paragraph ${loc.paragraph_index}`);
+    if(v.affected_count > 1) locBits.push(`${v.affected_count} occurrences`);
+    div.innerHTML = `
+      <div class="v-head"><span class="v-badge ${v.severity}">${v.severity}</span> ${v.rule_id}</div>
+      <div class="v-msg">${v.message}</div>
+      ${locBits.length ? `<div class="v-meta">${locBits.join(' · ')}</div>` : ''}
+      ${loc.text_preview ? `<div class="v-preview">"${loc.text_preview}"</div>` : ''}
+    `;
+    list.appendChild(div);
+  });
+}
+
+loadTemplates();
+</script>
+</body>
+</html>
